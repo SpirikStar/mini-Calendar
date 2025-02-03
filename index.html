@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь</title>
+    <style>
+        /* Стили календаря */
+        .calendar {
+            width: 300px;
+            margin: 20px auto;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .calendar-header button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .calendar-header button:disabled {
+            background-color: #ccc;
+        }
+
+        .calendar-body {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-body div {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .calendar-body .disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        .calendar-body .selected {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .calendar-body .current-day {
+            border: 2px solid #007bff;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .calendar-weekdays div {
+            padding: 5px 0;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .week-display {
+            margin-top: 10px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .week-display button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+
+        .reset-btn {
+            margin-top: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="calendar">
+        <div class="calendar-header">
+            <button id="prevMonth">Назад</button>
+            <div id="currentMonth"></div>
+            <button id="nextMonth">Вперед</button>
+        </div>
+        <!-- Дни недели -->
+        <div class="calendar-weekdays">
+            <div>Пн</div>
+            <div>Вт</div>
+            <div>Ср</div>
+            <div>Чт</div>
+            <div>Пт</div>
+            <div>Сб</div>
+            <div>Вс</div>
+        </div>
+        <div class="calendar-body" id="calendarDays"></div>
+        <div class="week-display">
+            <button id="prevWeek">←</button>
+            <span id="weekRange">Выберите дату</span>
+            <button id="nextWeek">→</button>
+        </div>
+        <button class="reset-btn" id="resetButton">Сбросить (Текущая дата)</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentMonthElement = document.getElementById('currentMonth');
+            const calendarDaysElement = document.getElementById('calendarDays');
+            const prevMonthButton = document.getElementById('prevMonth');
+            const nextMonthButton = document.getElementById('nextMonth');
+            const resetButton = document.getElementById('resetButton');
+            const prevWeekButton = document.getElementById('prevWeek');
+            const nextWeekButton = document.getElementById('nextWeek');
+            const weekRangeElement = document.getElementById('weekRange');
+
+            let currentDate = new Date();
+            const today = new Date();
+            let selectedDate = new Date(); // Текущая дата по умолчанию
+
+            function renderCalendar() {
+                // Отображение месяца и года
+                const options = { year: 'numeric', month: 'long' };
+                currentMonthElement.textContent = currentDate.toLocaleDateString('ru-RU', options);
+
+                // Очистка дней
+                calendarDaysElement.innerHTML = '';
+
+                // Устанавливаем первый день месяца
+                const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+                const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+
+                // Корректируем первый день недели (воскресенье -> понедельник)
+                const adjustedFirstDay = (firstDayOfMonth === 0 ? 7 : firstDayOfMonth);
+
+                // Отображаем пустые ячейки перед первым днем месяца
+                for (let i = 0; i < adjustedFirstDay - 1; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.classList.add('disabled');
+                    calendarDaysElement.appendChild(emptyCell);
+                }
+
+                // Отображение дней
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.textContent = i;
+
+                    // Подсвечиваем текущий день
+                    if (i === today.getDate() &&
+                        currentDate.getMonth() === today.getMonth() &&
+                        currentDate.getFullYear() === today.getFullYear()) {
+                        dayCell.classList.add('current-day');
+                    }
+
+                    dayCell.addEventListener('click', () => {
+                        selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
+                        updateWeekDisplay();
+                        renderCalendar();
+                    });
+
+                    // Подсветка выбранного дня
+                    if (selectedDate &&
+                        selectedDate.getDate() === i &&
+                        selectedDate.getMonth() === currentDate.getMonth() &&
+                        selectedDate.getFullYear() === currentDate.getFullYear()) {
+                        dayCell.classList.add('selected');
+                    }
+
+                    calendarDaysElement.appendChild(dayCell);
+                }
+            }
+
+            function updateWeekDisplay() {
+    if (selectedDate) {
+        const dayOfWeek = selectedDate.getDay() || 7; // Понедельник - 1, Воскресенье - 7
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - dayOfWeek + 1);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+        const formatDate = (date) => {
+            const options = { day: 'numeric', month: 'long' };
+            return date.toLocaleDateString('ru-RU', options);
+        };
+
+        const formatFullDate = (date) => {
+            const options = { year: 'numeric', day: 'numeric', month: 'long' };
+            return date.toLocaleDateString('ru-RU', options);
+        };
+
+        if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
+            // Если начало и конец недели в одном месяце
+            weekRangeElement.textContent = `${formatDate(startOfWeek)} - ${formatFullDate(endOfWeek)}`;
+        } else {
+            // Если начало и конец недели в разных месяцах
+            weekRangeElement.textContent = `${formatDate(startOfWeek)} - ${formatFullDate(endOfWeek)}`;
+        }
+    } else {
+        weekRangeElement.textContent = 'Выберите дату';
+    }
+}
+
+            // Переключение недели назад
+            prevWeekButton.addEventListener('click', () => {
+                if (selectedDate) {
+                    selectedDate.setDate(selectedDate.getDate() - 7);
+                    updateWeekDisplay();
+                }
+            });
+
+            // Переключение недели вперед
+            nextWeekButton.addEventListener('click', () => {
+                if (selectedDate) {
+                    selectedDate.setDate(selectedDate.getDate() + 7);
+                    updateWeekDisplay();
+                }
+            });
+
+            // Переключение месяца назад
+            prevMonthButton.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            // Переключение месяца вперед
+            nextMonthButton.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            // Сброс на текущую дату
+            resetButton.addEventListener('click', () => {
+                currentDate = new Date(today);
+                selectedDate = new Date(today);
+                renderCalendar();
+                updateWeekDisplay();
+            });
+
+            // Инициализация календаря
+            renderCalendar();
+            updateWeekDisplay(); // Устанавливаем текущую неделю при загрузке страницы
+        });
+    </script>
+</body>
+
+</html>
